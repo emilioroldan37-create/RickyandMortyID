@@ -1,0 +1,228 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <title>Tarjeta de personajes</title>
+</head>
+
+<body class="bg-slate-950 min-h-screen
+flex items-center justify-center p-4
+font-sans text-slate-100">
+
+<div id="app" class="w-full max-w-md">
+
+    <!-- SKELETON LOADER -->
+    <div v-if="estaCargando"
+         class="bg-slate-800 rounded-2xl shadow-2xl p-6
+         border border-blue-900 animate-pulse relative mt-16">
+
+        <div class="w-32 h-32 bg-slate-700 rounded-full
+        mx-auto -mt-20 border-4 border-orange-500"></div>
+
+        <div class="h-8 bg-slate-700 w-3/4 mx-auto rounded mt-6 mb-4"></div>
+        <div class="h-4 bg-slate-700 w-1/2 mx-auto rounded mb-6"></div>
+        <div class="h-24 bg-slate-700 w-full rounded-xl mb-6"></div>
+        <div class="h-12 bg-slate-700 w-full rounded-xl"></div>
+    </div>
+
+    <!-- TARJETA FINAL CARGADA -->
+    <article v-else-if="personaje"
+        class="bg-slate-800 rounded-2xl shadow-2xl p-6
+        border border-blue-800 relative mt-16
+        transition-all duration-300">
+
+        <!-- Imagen del personaje -->
+        <div class="relative w-32 h-32 mx-auto -mt-20">
+            <img
+                :src="personaje.image"
+                :alt="personaje.name"
+                class="w-full h-full object-cover rounded-full
+                border-4 border-orange-500 shadow-xl"
+            >
+        </div>
+
+        <!-- Información principal -->
+        <div class="text-center mt-4">
+
+            <h1 class="text-3xl font-black tracking-tight
+            text-white mb-1">
+                {{ personaje.name }}
+            </h1>
+
+            <!-- Indicador de estado -->
+            <div class="flex items-center justify-center gap-2
+            text-slate-300 text-sm font-medium mb-6">
+
+                <span class="w-3 h-3 rounded-full block"
+                    :class="obtenerColorEstado(personaje.status)">
+                </span>
+
+                <span>{{ personaje.status }} - {{ personaje.species }}</span>
+            </div>
+        </div>
+
+        <!-- Cuadro para buscar por ID -->
+        <div class="bg-slate-900 rounded-xl p-4 mb-5
+        border border-blue-900">
+
+            <label for="personajeId"
+                class="text-orange-400 block text-xs uppercase
+                font-bold tracking-wider mb-2">
+                Buscar personaje por ID
+            </label>
+
+            <div class="flex gap-2">
+
+                <input
+                    id="personajeId"
+                    v-model="idPersonaje"
+                    type="number"
+                    min="1"
+                    max="826"
+                    placeholder="Ej. 1"
+                    @keyup.enter="obtenerPersonaje"
+                    class="w-full min-w-0 bg-slate-800 text-white
+                    border border-blue-700 rounded-lg px-3 py-2
+                    outline-none focus:border-orange-500"
+                >
+
+                <button
+                    @click="obtenerPersonaje"
+                    class="bg-orange-500 hover:bg-orange-400
+                    text-slate-950 font-bold px-4 rounded-lg
+                    transition-all">
+                    Buscar
+                </button>
+
+            </div>
+
+            <p class="text-slate-400 text-xs mt-2">
+                Escribe un ID del 1 al 826.
+            </p>
+
+            <p v-if="mensajeError"
+                class="text-orange-400 text-sm mt-2">
+                {{ mensajeError }}
+            </p>
+        </div>
+
+        <!-- Detalles del personaje -->
+        <div class="bg-blue-950/50 rounded-xl p-4 mb-6 text-sm
+        border border-blue-900">
+
+            <div class="mb-3">
+                <span class="text-orange-400 block text-xs
+                uppercase font-bold tracking-wider mb-1">
+                    Origen
+                </span>
+
+                <p class="text-slate-200">
+                    {{ personaje.origin.name }}
+                </p>
+            </div>
+
+        </div>
+
+        <!-- Botón para cargar otro personaje -->
+        <button
+            @click="obtenerPersonajeAleatorio"
+            class="w-full bg-gradient-to-r from-orange-500
+            to-blue-500 hover:from-orange-400 hover:to-blue-400
+            text-white font-bold py-3 px-6 rounded-xl
+            transition-all shadow-lg transform hover:-translate-y-1">
+
+            Viajar por el Portal (Aleatorio)
+        </button>
+
+    </article>
+
+</div>
+
+<script>
+const { createApp, ref, onMounted } = Vue;
+
+createApp({
+    setup() {
+        const personaje = ref(null);
+        const estaCargando = ref(true);
+        const idPersonaje = ref('1');
+        const mensajeError = ref('');
+
+        const obtenerPersonaje = async () => {
+
+            const id = Number(idPersonaje.value);
+
+            if (!Number.isInteger(id) || id < 1 || id > 826) {
+                mensajeError.value = 'Ingresa un ID válido del 1 al 826.';
+                return;
+            }
+
+            estaCargando.value = true;
+            mensajeError.value = '';
+
+            try {
+                const respuesta = await fetch(
+                    `https://rickandmortyapi.com/api/character/${id}`
+                );
+
+                if (!respuesta.ok) {
+                    throw new Error('Personaje no encontrado');
+                }
+
+                const datos = await respuesta.json();
+                personaje.value = datos;
+
+            }
+            catch (error) {
+                console.error("Fallo dimensional: ", error);
+                mensajeError.value = 'No se pudo cargar el personaje. Intenta de nuevo.';
+
+            }
+            finally {
+                estaCargando.value = false;
+            }
+        };
+
+        const obtenerPersonajeAleatorio = () => {
+            idPersonaje.value = String(
+                Math.floor(Math.random() * 826) + 1
+            );
+
+            obtenerPersonaje();
+        };
+
+        const obtenerColorEstado = (status) => {
+            if (status === 'Alive') {
+                return 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]';
+            }
+
+            if (status === 'Dead') {
+                return 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]';
+            }
+
+            return 'bg-gray-500';
+        };
+
+        onMounted(() => {
+            obtenerPersonaje();
+        });
+
+        return {
+            personaje,
+            estaCargando,
+            idPersonaje,
+            mensajeError,
+            obtenerPersonaje,
+            obtenerPersonajeAleatorio,
+            obtenerColorEstado
+        };
+    }
+}).mount('#app');
+</script>
+
+</body>
+</html>
